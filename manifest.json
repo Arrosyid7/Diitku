@@ -8,14 +8,15 @@
   "theme_color": "#074aa9",
   "icons": [
     {
-      "src": "icons/Diitku.jpg",
+      "src": "Diitku.jpg",
       "sizes": "192x192",
       "type": "image/jpeg"
     },
     {
-      "src": "icons/Diitku.jpg",
+      "src": "Diitku.jpg",
       "sizes": "512x512",
       "type": "image/jpeg"
     }
   ]
 }
+
