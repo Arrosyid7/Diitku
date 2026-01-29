@@ -31,6 +31,48 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Handle share target POST requests
+  if (event.request.method === 'POST' && event.request.url.includes('/share')) {
+    event.respondWith(
+      event.request.formData().then((formData) => {
+        const sharedData = {
+          title: formData.get('title'),
+          text: formData.get('text'),
+          url: formData.get('url'),
+          files: formData.getAll('files')
+        };
+        // Store shared data in IndexedDB or send to main thread
+        return new Response(JSON.stringify({ success: true, data: sharedData }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
+  // Handle file handler requests
+  if (event.request.url.includes('/handle-file')) {
+    event.respondWith(
+      new Response('File handled', { status: 200 })
+    );
+    return;
+  }
+
+  // Handle widget data requests
+  if (event.request.url.includes('/widget-data')) {
+    event.respondWith(
+      new Response(JSON.stringify({
+        balance: 0,
+        income: 0,
+        expense: 0
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    return;
+  }
+
+  // Default cache-first strategy
   event.respondWith(
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
