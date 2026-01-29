@@ -978,8 +978,84 @@
                 });
         });
     }
+
+    // Handle PWA shortcuts and share target
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const tab = urlParams.get('tab');
+
+    if (action === 'add') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                openModal('addModal');
+            }
+        };
+    } else if (tab === 'reports') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                switchTab('reports', document.querySelector('[onclick*="switchTab(\'reports\'"]'));
+            }
+        };
+    } else if (tab === 'goals') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                switchTab('goals', document.querySelector('[onclick*="switchTab(\'goals\'"]'));
+            }
+        };
+    }
+
+    // Handle share target
+    if (window.location.pathname === '/share') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                // Handle shared content
+                const sharedTitle = urlParams.get('title');
+                const sharedText = urlParams.get('text');
+                const sharedUrl = urlParams.get('url');
+                if (sharedTitle || sharedText || sharedUrl) {
+                    alert('Konten dibagikan: ' + (sharedTitle || sharedText || sharedUrl));
+                }
+            }
+        };
+    }
+
+    // Handle file handlers
+    if (window.location.pathname === '/handle-file') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                // Handle opened file
+                alert('File dibuka melalui PWA');
+            }
+        };
+    }
+
+    // Handle widget data
+    if (window.location.pathname === '/widget-data') {
+        // Return widget data as JSON
+        const widgetData = {
+            balance: parseInt(document.getElementById('display-balance')?.innerText.replace(/\D/g,'') || '0'),
+            income: parseInt(document.getElementById('display-income')?.innerText.replace(/\D/g,'') || '0'),
+            expense: parseInt(document.getElementById('display-expense')?.innerText.replace(/\D/g,'') || '0')
+        };
+        // Since this is client-side, we can't directly serve JSON, but this is for demonstration
+        console.log('Widget data:', widgetData);
+    }
 </script>
 
 </body>
-
 </html>
