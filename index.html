@@ -117,6 +117,14 @@
         </div>
     </div>
 
+    <div id="tab-notes" class="page-content">
+        <div class="d-flex justify-content-between mb-4">
+            <h5 class="fw-bold">Catatan Saya</h5>
+            <button class="btn btn-sm btn-primary" onclick="openModal('addNoteModal')">+ Catatan</button>
+        </div>
+        <div id="notes-list"></div>
+    </div>
+
 </div>
 
 <!-- Auth Modal -->
@@ -315,12 +323,43 @@
 </div>
 
 <div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 border-0" style="border-radius:25px;">
-        <h5 class="fw-bold text-center mb-3">Scan Struk</h5>
-        <div class="bg-black rounded-4 mb-3 d-flex align-items-center justify-content-center text-white" style="height:200px;"><i class="bi bi-camera fs-1"></i></div>
-        <input type="file" id="scan-file" class="form-control mb-3">
-        <button class="btn btn-primary w-100 p-3" onclick="simulateScan()">Proses Struk</button>
-    </div></div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-4 border-0" style="border-radius:25px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Scan Struk</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div id="camera-container" class="mb-3">
+                <video id="camera-feed" class="w-100 rounded-4" style="max-height: 300px; display: none;"></video>
+                <canvas id="camera-canvas" style="display: none;"></canvas>
+                <div id="camera-placeholder" class="bg-black rounded-4 d-flex align-items-center justify-content-center text-white" style="height:200px;">
+                    <i class="bi bi-camera fs-1"></i>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-3">
+                <button id="start-camera-btn" class="btn btn-outline-primary flex-fill" onclick="startCamera()">
+                    <i class="bi bi-camera-video me-2"></i>Start Camera
+                </button>
+                <button id="capture-btn" class="btn btn-primary flex-fill" onclick="captureImage()" style="display: none;">
+                    <i class="bi bi-camera me-2"></i>Capture
+                </button>
+                <button id="stop-camera-btn" class="btn btn-outline-danger flex-fill" onclick="stopCamera()" style="display: none;">
+                    <i class="bi bi-stop-circle me-2"></i>Stop
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <label class="small fw-bold text-muted mb-2">ATAU PILIH GAMBAR DARI GALERI</label>
+                <input type="file" id="scan-file" class="form-control p-3 bg-light border-0" accept="image/*" style="border-radius:15px;">
+            </div>
+
+            <button id="process-btn" class="btn btn-primary w-100 p-3 fw-bold" onclick="processScan()" disabled>
+                <i class="bi bi-search me-2"></i>Proses Struk
+            </button>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="addToGoalModal" tabindex="-1">
@@ -444,7 +483,6 @@
     <a href="javascript:void(0)" class="nav-item" onclick="switchTab('reports', this)"><i class="bi bi-pie-chart-fill"></i>Laporan</a>
     <div class="center-btn" onclick="openModal('addModal')"><i class="bi bi-plus"></i></div>
     <a href="javascript:void(0)" class="nav-item" onclick="switchTab('goals', this)"><i class="bi bi-flag-fill"></i>Target</a>
-    <a href="javascript:void(0)" class="nav-item" onclick="switchTab('notes', this)"><i class="bi bi-sticky-fill"></i>Catatan</a>
     <a href="javascript:void(0)" class="nav-item" onclick="switchTab('profile', this)"><i class="bi bi-person-fill"></i>Profil</a>
 </nav>
 
@@ -570,20 +608,155 @@
     }
 
     // LOGIKA SCAN
-    function simulateScan() {
-        alert("OCR Sedang memproses gambar...");
-        setTimeout(() => {
-            const scanAmt = Math.floor(Math.random() * 100000) + 10000;
-            db.transactions.push({
-                id: Date.now(), type: 'expense', amount: scanAmt, category: 'Makanan', note: 'Hasil Scan Struk', date: new Date().toLocaleDateString()
+    let stream = null;
+    let capturedImage = null;
+
+    async function startCamera() {
+        try {
+            // Request camera permission
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' } // Use back camera if available
             });
-            saveDB();
-            bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
-            updateUI();
-            playSound('expense', scanAmt);
-            alert("Berhasil! Terdeteksi pengeluaran Rp " + scanAmt.toLocaleString());
-        }, 1500);
+
+            const video = document.getElementById('camera-feed');
+            video.srcObject = stream;
+            video.style.display = 'block';
+            document.getElementById('camera-placeholder').style.display = 'none';
+
+            // Update UI
+            document.getElementById('start-camera-btn').style.display = 'none';
+            document.getElementById('capture-btn').style.display = 'block';
+            document.getElementById('stop-camera-btn').style.display = 'block';
+
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            alert('Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.');
+        }
     }
+
+    function captureImage() {
+        const video = document.getElementById('camera-feed');
+        const canvas = document.getElementById('camera-canvas');
+        const context = canvas.getContext('2d');
+
+        // Set canvas size to video size
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw current video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert to data URL
+        capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+
+        // Update UI
+        document.getElementById('capture-btn').style.display = 'none';
+        document.getElementById('process-btn').disabled = false;
+        document.getElementById('process-btn').innerHTML = '<i class="bi bi-search me-2"></i>Proses Struk';
+
+        alert('Gambar berhasil diambil! Klik "Proses Struk" untuk memproses.');
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        const video = document.getElementById('camera-feed');
+        video.style.display = 'none';
+        document.getElementById('camera-placeholder').style.display = 'block';
+
+        // Reset UI
+        document.getElementById('start-camera-btn').style.display = 'block';
+        document.getElementById('capture-btn').style.display = 'none';
+        document.getElementById('stop-camera-btn').style.display = 'none';
+        document.getElementById('process-btn').disabled = true;
+        capturedImage = null;
+    }
+
+    // Handle file input change
+    document.getElementById('scan-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                capturedImage = e.target.result;
+                document.getElementById('process-btn').disabled = false;
+                document.getElementById('process-btn').innerHTML = '<i class="bi bi-search me-2"></i>Proses Struk';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    async function processScan() {
+        if (!capturedImage) {
+            alert('Silakan ambil gambar atau pilih dari galeri terlebih dahulu.');
+            return;
+        }
+
+        document.getElementById('process-btn').innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+        document.getElementById('process-btn').disabled = true;
+
+        try {
+            // Use Tesseract.js for OCR
+            const result = await Tesseract.recognize(capturedImage, 'ind', {
+                logger: m => console.log(m)
+            });
+
+            const text = result.data.text;
+            console.log('OCR Result:', text);
+
+            // Extract amount from text (simple regex for Indonesian Rupiah format)
+            const amountRegex = /(?:Rp\.?\s*|IDR\s*)?(\d{1,3}(?:\.\d{3})*|\d+)/gi;
+            const matches = text.match(amountRegex);
+
+            let detectedAmount = null;
+            if (matches && matches.length > 0) {
+                // Clean and parse the amount
+                const cleanAmount = matches[matches.length - 1].replace(/[^\d]/g, '');
+                detectedAmount = parseInt(cleanAmount);
+            }
+
+            if (detectedAmount && detectedAmount > 0) {
+                // Add transaction
+                db.transactions.push({
+                    id: Date.now(),
+                    type: 'expense',
+                    amount: detectedAmount,
+                    category: 'Makanan', // Default category, could be improved with ML
+                    note: 'Hasil Scan Struk',
+                    date: new Date().toLocaleDateString()
+                });
+                saveDB();
+                updateUI();
+                playSound('expense', detectedAmount);
+
+                // Close modal and show success
+                bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+                alert(`Berhasil! Terdeteksi pengeluaran Rp ${detectedAmount.toLocaleString()}`);
+            } else {
+                alert('Tidak dapat mendeteksi jumlah nominal dari gambar. Silakan coba lagi dengan gambar yang lebih jelas.');
+                document.getElementById('process-btn').disabled = false;
+                document.getElementById('process-btn').innerHTML = '<i class="bi bi-search me-2"></i>Proses Struk';
+            }
+
+        } catch (error) {
+            console.error('OCR Error:', error);
+            alert('Terjadi kesalahan saat memproses gambar. Silakan coba lagi.');
+            document.getElementById('process-btn').disabled = false;
+            document.getElementById('process-btn').innerHTML = '<i class="bi bi-search me-2"></i>Proses Struk';
+        }
+    }
+
+    // Reset scan modal when closed
+    document.getElementById('scanModal').addEventListener('hidden.bs.modal', () => {
+        stopCamera();
+        capturedImage = null;
+        document.getElementById('scan-file').value = '';
+        document.getElementById('process-btn').disabled = true;
+        document.getElementById('process-btn').innerHTML = '<i class="bi bi-search me-2"></i>Proses Struk';
+    });
 
     // LOGIKA TARGET
     document.getElementById('form-goal').onsubmit = (e) => {
@@ -1240,6 +1413,4 @@
 </script>
 
 </body>
-
 </html>
-
