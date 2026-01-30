@@ -54,8 +54,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'Notifikasi dari Diitku',
-    icon: 'icons/Diitku.jpg',
-    badge: 'icons/Diitku.jpg',
+    icon: 'Diitku.jpg',
+    badge: 'Diitku.jpg',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -65,7 +65,7 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Lihat Detail',
-        icon: 'icons/Diitku.jpg'
+        icon: 'Diitku.jpg'
       },
       {
         action: 'close',
@@ -205,3 +205,4 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
+
