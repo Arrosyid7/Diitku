@@ -1,0 +1,116 @@
+{
+  "name": "Diitku - FinTech Solution",
+  "short_name": "Diitku",
+  "description": "Aplikasi manajemen keuangan pribadi",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F8F9FD",
+  "theme_color": "#074aa9",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tambah Transaksi",
+      "short_name": "Tambah",
+      "description": "Tambahkan transaksi baru",
+      "url": "./?action=add",
+      "icons": [
+        {
+          "src": "icons/Diitku.jpg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Laporan Keuangan",
+      "short_name": "Laporan",
+      "description": "Lihat laporan keuangan",
+      "url": "./?tab=reports",
+      "icons": [
+        {
+          "src": "icons/Diitku.jpg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Target Saya",
+      "short_name": "Target",
+      "description": "Kelola target keuangan",
+      "url": "./?tab=goals",
+      "icons": [
+        {
+          "src": "icons/Diitku.jpg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", ".pdf", ".txt"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/handle-file",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".gif"],
+        "text/*": [".txt", ".csv"],
+        "application/pdf": [".pdf"]
+      },
+      "icons": [
+        {
+          "src": "icons/Diitku.jpg",
+          "sizes": "256x256"
+        }
+      ],
+      "launch_type": "single-client"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+diitku",
+      "url": "/?action=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "widgets": [
+    {
+      "name": "Saldo Widget",
+      "description": "Widget untuk menampilkan saldo terkini",
+      "tag": "balance-widget",
+      "ms_ac_template": "balance-template",
+      "data": "/widget-data",
+      "type": "balance",
+      "update": 15,
+      "size": "small"
+    }
+  ]
+}

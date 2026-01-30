@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diitku - FinTech Solution</title>
+    <link rel="icon" href="icons/Diitku.jpg" type="image/jpeg">
+    <link rel="manifest" href="manifest.json">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+
+    <style>
+        :root {
+            --finku-blue: #074aa9;
+            --finku-bg: #F8F9FD;
+            --success: #00C566;
+            --danger: #FF4D4D;
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--finku-bg); padding-bottom: 100px; }
+        .page-content { display: none; animation: fadeIn 0.3s ease; }
+        .page-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { border: none; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.1); margin-bottom: 16px; }
+        .wallet-card { background: linear-gradient(135deg, #074aa9 0%, #074aa9 100%); color: white; border-radius: 24px; padding: 24px; }
+        
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 20px; right: 20px;
+            background: white; border-radius: 25px; display: flex;
+            padding: 12px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1000;
+            align-items: center;
+        }
+        .nav-item { text-align: center; color: #9DA3B4; text-decoration: none; font-size: 0.7rem; flex: 1; }
+        .nav-item.active { color: var(--finku-blue); }
+        .nav-item i { font-size: 1.4rem; display: block; }
+        .center-btn {
+            position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
+            background: var(--finku-blue); color: white; border-radius: 50%;
+            width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(93, 95, 239, 0.3); cursor: pointer;
+            z-index: 10;
+        }
+        .center-btn i { font-size: 1.8rem; }
+
+        .action-btn { background: white; border-radius: 18px; padding: 15px; text-align: center; flex: 1; margin: 0 5px; cursor: pointer; border: 2px solid var(--finku-blue); }
+        .icon-circle { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container" class="container pt-4">
+
+    <div id="tab-dashboard" class="page-content active">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div><p class="text-muted mb-0 small">Saldo Kamu</p><h5 class="fw-bold mb-0">Halo, User 👋</h5></div>
+            <i class="bi bi-person-circle fs-2 text-secondary" onclick="switchTab('profile', this)" style="cursor:pointer;"></i>
+        </div>
+
+        <div class="wallet-card mb-4">
+            <p class="mb-1 small opacity-75">Total Saldo</p>
+            <h2 class="fw-bold mb-4" id="display-balance">Rp 0</h2>
+            <div class="row">
+                <div class="col-6 border-end border-white border-opacity-25">
+                    <p class="mb-0 small opacity-75">Pemasukan</p>
+                    <p class="fw-bold mb-0" id="display-income">Rp 0</p>
+                </div>
+                <div class="col-6 ps-4">
+                    <p class="mb-0 small opacity-75">Pengeluaran</p>
+                    <p class="fw-bold mb-0" id="display-expense">Rp 0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex mb-4 justify-content-center">
+            <div class="action-btn" onclick="openModal('scanModal')"><i class="bi bi-qr-code-scan text-primary fs-3"></i><br><span class="small fw-bold">Scan</span></div>
+            <div class="action-btn" onclick="openModal('topupModal')"><i class="bi bi-wallet2 text-primary fs-3"></i><br><span class="small fw-bold">Top Up</span></div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Transaksi Terbaru</h6>
+        <div id="transaction-list"></div>
+    </div>
+
+    <div id="tab-reports" class="page-content">
+        <h5 class="fw-bold mb-4">Laporan Keuangan</h5>
+        <div class="card p-3 mb-4"><canvas id="reportChart" height="250"></canvas></div>
+        <div id="category-analysis" class="card p-3"></div>
+    </div>
+
+    <div id="tab-goals" class="page-content">
+        <div class="d-flex justify-content-between mb-4">
+            <h5 class="fw-bold">Target Saya</h5>
+            <button class="btn btn-sm btn-primary" onclick="openModal('goalModal')">+ Target</button>
+        </div>
+        <div id="goals-list"></div>
+    </div>
+
+    <div id="tab-profile" class="page-content text-center">
+        <div class="bg-white p-4 rounded-4 mb-3 text-center">
+            <img id="profile-pic" src="https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U" class="rounded-circle mb-3" style="width:100px; height:100px; object-fit:cover;" alt="Profile Picture">
+            <h5 class="fw-bold" id="profile-name">User</h5>
+            <p class="text-muted small">Total Transaksi: <span id="profile-tx-count">0</span></p>
+        </div>
+        <div class="card text-start">
+            <div class="list-group list-group-flush">
+                <div class="list-group-item p-3"><b>Saldo Terkini:</b> <span class="float-end fw-bold text-primary" id="profile-balance">Rp 0</span></div>
+                <div class="list-group-item p-3 text-primary" onclick="openModal('editProfilePicModal')"><i class="bi bi-camera me-2"></i> Ubah Foto Profil</div>
+                <div class="list-group-item p-3 text-primary" onclick="openModal('editNameModal')"><i class="bi bi-pencil me-2"></i> Ubah Nama</div>
+                <div class="list-group-item p-3 text-primary" onclick="logoutUser()"><i class="bi bi-box-arrow-right me-2"></i> Keluar</div>
+                <div class="list-group-item p-3 text-danger" onclick="clearData()"><i class="bi bi-trash me-2"></i> Hapus Semua Data</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-notes" class="page-content">
+        <div class="d-flex justify-content-between mb-4">
+            <h5 class="fw-bold">Catatan Saya</h5>
+            <button class="btn btn-sm btn-primary" onclick="openModal('addNoteModal')">+ Catatan</button>
+        </div>
+        <div id="notes-list"></div>
+    </div>
+
+</div>
+
+<!-- Auth Modal -->
+<div class="modal fade" id="authModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold text-primary">Diitku</h4>
+                    <p class="text-muted small">Kelola Keuangan Anda dengan Mudah</p>
+                </div>
+
+                <div id="login-view">
+                    <h5 class="fw-bold mb-4 text-center">Masuk</h5>
+                    <form id="form-login">
+                        <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-2">EMAIL</label>
+                            <input type="email" id="login-email" class="form-control p-3 bg-light border-0" placeholder="Masukkan email" required style="border-radius:15px;">
+                        </div>
+                        <div class="mb-4">
+                            <label class="small fw-bold text-muted mb-2">PASSWORD</label>
+                            <input type="password" id="login-password" class="form-control p-3 bg-light border-0" placeholder="Masukkan password" required style="border-radius:15px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Masuk</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Belum punya akun? <a href="#" onclick="switchAuthView('register')">Daftar</a></small>
+                    </div>
+                </div>
+
+                <div id="register-view" style="display: none;">
+                    <h5 class="fw-bold mb-4 text-center">Daftar</h5>
+                    <form id="form-register">
+                        <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-2">NAMA LENGKAP</label>
+                            <input type="text" id="register-name" class="form-control p-3 bg-light border-0" placeholder="Masukkan nama lengkap" required style="border-radius:15px;">
+                        </div>
+                        <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-2">EMAIL</label>
+                            <input type="email" id="register-email" class="form-control p-3 bg-light border-0" placeholder="Masukkan email" required style="border-radius:15px;">
+                        </div>
+                        <div class="mb-4">
+                            <label class="small fw-bold text-muted mb-2">PASSWORD</label>
+                            <input type="password" id="register-password" class="form-control p-3 bg-light border-0" placeholder="Minimal 6 karakter (huruf/angka)" required style="border-radius:15px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Daftar</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Sudah punya akun? <a href="#" onclick="switchAuthView('login')">Masuk</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Catat Transaksi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="form-transaction">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">TIPE TRANSAKSI</label>
+                        <select id="in-type" class="form-select p-3 bg-light border-0" style="border-radius:15px;">
+                            <option value="income">Pemasukan (+)</option>
+                            <option value="expense">Pengeluaran (-)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">KATEGORI</label>
+                        <select id="in-cat" class="form-select p-3 bg-light border-0" style="border-radius:15px;">
+                            <option>Gaji</option>
+                            <option>Makanan</option>
+                            <option>Transport</option>
+                            <option>Hiburan</option>
+                            <option>Belanja</option>
+                            <option>Tagihan</option>
+                            <option>Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">NOMINAL</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-0 bg-light fw-bold" style="border-radius: 15px 0 0 15px;">Rp</span>
+                            <input type="number" id="in-amount" class="form-control border-0 bg-light p-3 fw-bold" placeholder="0" required style="border-radius: 0 15px 15px 0; color: var(--finku-blue);">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-2">KETERANGAN</label>
+                        <input type="text" id="in-note" class="form-control p-3 bg-light border-0" placeholder="Tambahkan catatan..." style="border-radius:15px;">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Transaksi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="topupModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Top Up Saldo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <label class="small fw-bold text-muted mb-3">PILIH NOMINAL CEPAT</label>
+                <div class="row g-2 mb-4">
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(50000)" style="border-radius:12px;">50rb</button></div>
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(100000)" style="border-radius:12px;">100rb</button></div>
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(200000)" style="border-radius:12px;">200rb</button></div>
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(500000)" style="border-radius:12px;">500rb</button></div>
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(1000000)" style="border-radius:12px;">1jt</button></div>
+                    <div class="col-4"><button class="btn btn-outline-primary w-100 py-2 small fw-bold" onclick="setTopUp(2000000)" style="border-radius:12px;">2jt</button></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="small fw-bold text-muted mb-2">NOMINAL LAINNYA</label>
+                    <div class="input-group">
+                        <span class="input-group-text border-0 bg-light fw-bold" style="border-radius: 15px 0 0 15px;">Rp</span>
+                        <input type="number" id="topup-amount" class="form-control border-0 bg-light p-3 fw-bold" placeholder="0" style="border-radius: 0 15px 15px 0; color: var(--finku-blue);">
+                    </div>
+                </div>
+
+                <label class="small fw-bold text-muted mb-3">METODE PEMBAYARAN</label>
+                <div class="card border mb-4 p-2" style="border-radius:15px; cursor:pointer;" onclick="focusSelect()">
+                    <div class="d-flex align-items-center p-2">
+                        <i class="bi bi-bank text-primary fs-4 me-3"></i>
+                        <div class="flex-grow-1">
+                            <select id="topup-method" class="form-select border-0 p-0 fw-bold small shadow-none">
+                                <option>BCA Virtual Account</option>
+                                <option>Mandiri Livin'</option>
+                                <option>GoPay</option>
+                                <option>OVO / Dana</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary w-100 p-3 fw-bold" onclick="processTopUp()" style="border-radius:18px; background: var(--finku-blue);">Konfirmasi Top Up</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="topupModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 border-0" style="border-radius:25px;">
+        <h5 class="fw-bold mb-4">Top Up Saldo</h5>
+        <div class="row g-2 mb-4">
+            <div class="col-6"><button class="btn btn-outline-primary w-100 py-3" onclick="setTopUp(50000)">50rb</button></div>
+            <div class="col-6"><button class="btn btn-outline-primary w-100 py-3" onclick="setTopUp(100000)">100rb</button></div>
+        </div>
+        <input type="number" id="topup-amount" class="form-control mb-4 p-3 bg-light border-0" placeholder="Masukkan Nominal">
+        <button class="btn btn-primary w-100 p-3" onclick="processTopUp()">Konfirmasi Top Up</button>
+    </div></div>
+</div>
+
+<div class="modal fade" id="goalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Buat Target Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="form-goal">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">NAMA TARGET</label>
+                        <input type="text" id="goal-name" class="form-control p-3 bg-light border-0" placeholder="Nama Barang/Tujuan" required style="border-radius:15px;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">TARGET NOMINAL</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-0 bg-light fw-bold" style="border-radius: 15px 0 0 15px;">Rp</span>
+                            <input type="number" id="goal-target" class="form-control border-0 bg-light p-3 fw-bold" placeholder="0" required style="border-radius: 0 15px 15px 0; color: var(--finku-blue);">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Target</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content p-4 border-0" style="border-radius:25px;">
+        <h5 class="fw-bold text-center mb-3">Scan Struk</h5>
+        <div class="bg-black rounded-4 mb-3 d-flex align-items-center justify-content-center text-white" style="height:200px;"><i class="bi bi-camera fs-1"></i></div>
+        <input type="file" id="scan-file" class="form-control mb-3">
+        <button class="btn btn-primary w-100 p-3" onclick="simulateScan()">Proses Struk</button>
+    </div></div>
+</div>
+
+<div class="modal fade" id="addToGoalModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Tambah Saldo Target</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="text-center mb-4">
+                    <h6 class="fw-bold text-primary" id="goal-title">Target Name</h6>
+                    <small class="text-muted">Terkumpul: <span id="goal-current">Rp 0</span> / Target: <span id="goal-target-display">Rp 0</span></small>
+                </div>
+
+                <form id="form-add-to-goal">
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-2">JUMLAH YANG INGIN DITAMBAHKAN</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-0 bg-light fw-bold" style="border-radius: 15px 0 0 15px;">Rp</span>
+                            <input type="number" id="add-amount" class="form-control border-0 bg-light p-3 fw-bold" placeholder="0" required style="border-radius: 0 15px 15px 0; color: var(--finku-blue);">
+                        </div>
+                        <small class="text-muted mt-1">Masukkan jumlah yang ingin ditambahkan ke target ini</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Tambah ke Target</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Name Modal -->
+<div class="modal fade" id="editNameModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Ubah Nama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="form-edit-name">
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-2">NAMA LENGKAP BARU</label>
+                        <input type="text" id="edit-name" class="form-control p-3 bg-light border-0" placeholder="Masukkan nama lengkap baru" required style="border-radius:15px;">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Perubahan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Picture Modal -->
+<div class="modal fade" id="editProfilePicModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Ubah Foto Profil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="text-center mb-4">
+                    <img id="preview-profile-pic" src="https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U" class="rounded-circle mb-3" style="width:100px; height:100px; object-fit:cover;" alt="Preview">
+                </div>
+
+                <form id="form-edit-profile-pic">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">PILIH GAMBAR</label>
+                        <input type="file" id="profile-pic-file" class="form-control p-3 bg-light border-0" accept="image/*" style="border-radius:15px;">
+                        <small class="text-muted mt-1">Pilih gambar dari perangkat Anda</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-2">ATAU MASUKKAN URL GAMBAR</label>
+                        <input type="url" id="profile-pic-url" class="form-control p-3 bg-light border-0" placeholder="https://example.com/image.jpg" style="border-radius:15px;">
+                        <small class="text-muted mt-1">Masukkan URL gambar dari internet</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Perubahan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius:28px;">
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Tambah Catatan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form id="form-note">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-2">JUDUL CATATAN</label>
+                        <input type="text" id="note-title" class="form-control p-3 bg-light border-0" placeholder="Judul catatan..." required style="border-radius:15px;">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="small fw-bold text-muted mb-2">ISI CATATAN</label>
+                        <textarea id="note-content" class="form-control p-3 bg-light border-0" placeholder="Tulis catatan Anda di sini..." rows="5" required style="border-radius:15px;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Catatan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <a href="javascript:void(0)" class="nav-item active" onclick="switchTab('dashboard', this)"><i class="bi bi-house-door-fill"></i>Beranda</a>
+    <a href="javascript:void(0)" class="nav-item" onclick="switchTab('reports', this)"><i class="bi bi-pie-chart-fill"></i>Laporan</a>
+    <div class="center-btn" onclick="openModal('addModal')"><i class="bi bi-plus"></i></div>
+    <a href="javascript:void(0)" class="nav-item" onclick="switchTab('goals', this)"><i class="bi bi-flag-fill"></i>Target</a>
+    <a href="javascript:void(0)" class="nav-item" onclick="switchTab('notes', this)"><i class="bi bi-sticky-fill"></i>Catatan</a>
+    <a href="javascript:void(0)" class="nav-item" onclick="switchTab('profile', this)"><i class="bi bi-person-fill"></i>Profil</a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // DATA STATE
+    let db = JSON.parse(localStorage.getItem('diitku_db')) || { transactions: [], goals: [], notes: [] };
+    let users = JSON.parse(localStorage.getItem('diitku_users')) || [];
+    let currentUser = localStorage.getItem('current_user');
+
+    // AUTH FUNCTIONS
+    function validateEmail(email) {
+        return email.includes('@') && email.includes('.');
+    }
+
+    function validatePassword(password) {
+        return password.length >= 6 && /^[a-zA-Z0-9]+$/.test(password);
+    }
+
+    function registerUser(name, email, password) {
+        if (!name || !email || !password) {
+            alert('Semua field harus diisi!');
+            return false;
+        }
+        if (!validateEmail(email)) {
+            alert('Email tidak valid!');
+            return false;
+        }
+        if (!validatePassword(password)) {
+            alert('Password minimal 6 karakter dan hanya boleh huruf/angka!');
+            return false;
+        }
+        if (users.find(u => u.email === email)) {
+            alert('Email sudah terdaftar!');
+            return false;
+        }
+        users.push({ name, email, password, profilePic: 'https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U' });
+        localStorage.setItem('diitku_users', JSON.stringify(users));
+        return true;
+    }
+
+    function loginUser(email, password) {
+        const user = users.find(u => u.email === email && u.password === password);
+        if (!user) {
+            alert('Email atau password salah!');
+            return false;
+        }
+        currentUser = email;
+        localStorage.setItem('current_user', currentUser);
+        return true;
+    }
+
+    function logoutUser() {
+        currentUser = null;
+        localStorage.removeItem('current_user');
+        location.reload();
+    }
+
+    function switchAuthView(view) {
+        document.getElementById('login-view').style.display = view === 'login' ? 'block' : 'none';
+        document.getElementById('register-view').style.display = view === 'register' ? 'block' : 'none';
+    }
+
+    // INIT APP
+    window.onload = () => {
+        if (!currentUser) {
+            openModal('authModal');
+        } else {
+            updateUI();
+        }
+    };
+
+    function openModal(id) { new bootstrap.Modal(document.getElementById(id)).show(); }
+
+    function switchTab(name, el) {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('tab-'+name).classList.add('active');
+        el.classList.add('active');
+        if(name === 'reports') renderReport();
+        if(name === 'goals') renderGoals();
+        if(name === 'notes') renderNotes();
+        if(name === 'profile') renderProfile();
+    }
+
+    // LOGIKA TRANSAKSI
+    document.getElementById('form-transaction').onsubmit = (e) => {
+        e.preventDefault();
+        const data = {
+            id: Date.now(),
+            type: document.getElementById('in-type').value,
+            amount: parseInt(document.getElementById('in-amount').value),
+            category: document.getElementById('in-cat').value,
+            note: document.getElementById('in-note').value,
+            date: new Date().toLocaleDateString()
+        };
+        db.transactions.push(data);
+        saveDB();
+        bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+        updateUI();
+        playSound(data.type, data.amount);
+        // Check for low balance warning after expense
+        if (data.type === 'expense') {
+            const currentBalance = parseInt(document.getElementById('display-balance').innerText.replace(/\D/g,''));
+            if (currentBalance < 20000) {
+                setTimeout(() => playSound('warning'), 1000); // Delay warning sound by 1 second
+            }
+        }
+    };
+
+    // LOGIKA TOP UP
+    function setTopUp(amt) { document.getElementById('topup-amount').value = amt; }
+    function processTopUp() {
+        const amt = parseInt(document.getElementById('topup-amount').value);
+        if(!amt) return;
+        db.transactions.push({
+            id: Date.now(), type: 'income', amount: amt, category: 'Top Up', note: 'Top up saldo via aplikasi', date: new Date().toLocaleDateString()
+        });
+        saveDB();
+        bootstrap.Modal.getInstance(document.getElementById('topupModal')).hide();
+        updateUI();
+        playSound('income', amt);
+    }
+
+    // LOGIKA SCAN
+    function simulateScan() {
+        alert("OCR Sedang memproses gambar...");
+        setTimeout(() => {
+            const scanAmt = Math.floor(Math.random() * 100000) + 10000;
+            db.transactions.push({
+                id: Date.now(), type: 'expense', amount: scanAmt, category: 'Makanan', note: 'Hasil Scan Struk', date: new Date().toLocaleDateString()
+            });
+            saveDB();
+            bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();
+            updateUI();
+            playSound('expense', scanAmt);
+            alert("Berhasil! Terdeteksi pengeluaran Rp " + scanAmt.toLocaleString());
+        }, 1500);
+    }
+
+    // LOGIKA TARGET
+    document.getElementById('form-goal').onsubmit = (e) => {
+        e.preventDefault();
+        const name = document.getElementById('goal-name').value.trim();
+        const target = parseInt(document.getElementById('goal-target').value);
+
+        if (!name) {
+            alert('Nama target tidak boleh kosong!');
+            return;
+        }
+        if (!target || target <= 0) {
+            alert('Target nominal harus lebih dari 0!');
+            return;
+        }
+
+        const goal = {
+            id: Date.now(),
+            name: name,
+            target: target,
+            allocation: 0,
+            current: 0
+        };
+
+        db.goals.push(goal);
+        saveDB();
+        playSound(null, null, 'Yeey target baru ditambahkan');
+        bootstrap.Modal.getInstance(document.getElementById('goalModal')).hide();
+        document.getElementById('form-goal').reset();
+        renderGoals();
+        updateUI();
+    };
+
+    // UI UPDATER
+    function updateUI() {
+        let bal = 0, inc = 0, exp = 0;
+        const list = document.getElementById('transaction-list');
+        list.innerHTML = '';
+
+        db.transactions.sort((a,b) => b.id - a.id).forEach(t => {
+            if(t.type === 'income') { bal += t.amount; inc += t.amount; }
+            else { bal -= t.amount; exp += t.amount; }
+
+            list.innerHTML += `
+                <div class="card p-3 mb-2 d-flex flex-row align-items-center">
+                    <div class="icon-circle ${t.type === 'income' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}">
+                        <i class="bi ${t.type === 'income' ? 'bi-arrow-down-left' : 'bi-arrow-up-right'}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0 fw-bold small">${t.note || t.category}</h6>
+                        <small class="text-muted">${t.date}</small>
+                    </div>
+                    <div class="fw-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}">
+                        ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString()}
+                    </div>
+                </div>`;
+        });
+
+        document.getElementById('display-balance').innerText = "Rp " + bal.toLocaleString();
+        document.getElementById('display-income').innerText = "Rp " + inc.toLocaleString();
+        document.getElementById('display-expense').innerText = "Rp " + exp.toLocaleString();
+    }
+
+    function renderReport() {
+        const cats = {};
+        db.transactions.filter(t => t.type === 'expense').forEach(t => {
+            cats[t.category] = (cats[t.category] || 0) + t.amount;
+        });
+
+        const ctx = document.getElementById('reportChart').getContext('2d');
+        if(window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(cats),
+                datasets: [{ data: Object.values(cats), backgroundColor: ['#5D5FEF', '#00C566', '#FF4D4D', '#FFB627', '#17a2b8'] }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
+        });
+
+        let ana = "";
+        Object.entries(cats).forEach(([k,v]) => {
+            ana += `<div class="d-flex justify-content-between mb-2 small"><span>${k}</span><span class="fw-bold">Rp ${v.toLocaleString()}</span></div>`;
+        });
+        document.getElementById('category-analysis').innerHTML = ana || "Belum ada pengeluaran";
+    }
+
+    function renderGoals() {
+        const list = document.getElementById('goals-list');
+        list.innerHTML = '';
+        db.goals.forEach(g => {
+            const progress = Math.min(100, Math.floor((g.current / g.target) * 100));
+
+            // Determine visual effects based on progress
+            let progressClass = 'bg-primary';
+            let cardClass = '';
+            let statusIcon = '';
+            let statusText = 'Klik untuk menambah saldo';
+
+            if (progress >= 100) {
+                progressClass = 'bg-success';
+                cardClass = 'border-success';
+                statusIcon = '🎉';
+                statusText = 'Target tercapai!';
+            } else if (progress >= 75) {
+                progressClass = 'bg-success';
+                cardClass = 'border-success';
+                statusIcon = '🚀';
+                statusText = 'Hampir tercapai!';
+            } else if (progress >= 50) {
+                progressClass = 'bg-warning';
+                cardClass = 'border-warning';
+                statusIcon = '💪';
+                statusText = 'Sedang berjalan baik!';
+            } else if (progress >= 25) {
+                progressClass = 'bg-info';
+                cardClass = 'border-info';
+                statusIcon = '📈';
+                statusText = 'Mulai membaik!';
+            } else {
+                progressClass = 'bg-danger';
+                cardClass = 'border-danger';
+                statusIcon = '🎯';
+                statusText = 'Butuh lebih banyak usaha!';
+            }
+
+            list.innerHTML += `
+                <div class="card p-3 ${cardClass}" onclick="openAddToGoalModal(${g.id})" style="cursor:pointer; transition: all 0.3s ease;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-1">${g.name}</h6>
+                        <span class="badge ${progress >= 100 ? 'bg-success' : 'bg-primary'}">${progress}%</span>
+                    </div>
+                    <small class="text-muted">Target: Rp ${g.target.toLocaleString()}</small>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-success fw-bold">Terkumpul: Rp ${g.current.toLocaleString()}</small>
+                        <small class="text-primary">${progress}%</small>
+                    </div>
+                    <div class="progress mt-2" style="height:12px; border-radius:6px;">
+                        <div class="progress-bar ${progressClass}" style="width:${progress}%; transition: width 1s ease-in-out;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">${statusIcon} ${statusText}</small>
+                        <small class="text-muted">Klik untuk menambah</small>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function renderProfile() {
+        document.getElementById('profile-balance').innerText = document.getElementById('display-balance').innerText;
+        document.getElementById('profile-tx-count').innerText = db.transactions.length;
+        const user = users.find(u => u.email === currentUser);
+        if (user) {
+            document.getElementById('profile-pic').src = user.profilePic || 'https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U';
+        }
+    }
+
+    // LOGIKA TAMBAH KE TARGET
+    function openAddToGoalModal(goalId) {
+        const goal = db.goals.find(g => g.id === goalId);
+        if (!goal) return;
+
+        document.getElementById('goal-title').innerText = goal.name;
+        document.getElementById('goal-current').innerText = 'Rp ' + goal.current.toLocaleString();
+        document.getElementById('goal-target-display').innerText = 'Rp ' + goal.target.toLocaleString();
+
+        // Store goal ID for form submission
+        document.getElementById('form-add-to-goal').dataset.goalId = goalId;
+
+        openModal('addToGoalModal');
+    }
+
+    document.getElementById('form-add-to-goal').onsubmit = (e) => {
+        e.preventDefault();
+        const goalId = parseInt(e.target.dataset.goalId);
+        const addAmount = parseInt(document.getElementById('add-amount').value);
+
+        if (!addAmount || addAmount <= 0) {
+            alert('Masukkan jumlah yang valid!');
+            return;
+        }
+
+        const goal = db.goals.find(g => g.id === goalId);
+        if (!goal) return;
+
+        // Check if user has enough balance
+        const currentBalance = parseInt(document.getElementById('display-balance').innerText.replace(/\D/g,''));
+        if (addAmount > currentBalance) {
+            alert('Saldo tidak mencukupi!');
+            return;
+        }
+
+        // Update goal current amount
+        goal.current += addAmount;
+
+        // Add transaction for this allocation
+        db.transactions.push({
+            id: Date.now(),
+            type: 'expense',
+            amount: addAmount,
+            category: 'Alokasi Target',
+            note: `Alokasi ke target: ${goal.name}`,
+            date: new Date().toLocaleDateString()
+        });
+
+        saveDB();
+        playSound('coin');
+        bootstrap.Modal.getInstance(document.getElementById('addToGoalModal')).hide();
+        document.getElementById('form-add-to-goal').reset();
+        updateUI();
+        renderGoals();
+
+        alert(`Berhasil menambah Rp ${addAmount.toLocaleString()} ke target ${goal.name}!`);
+    };
+
+    // AUTH FORM HANDLERS
+    document.getElementById('form-login').onsubmit = (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        if (loginUser(email, password)) {
+            bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            updateGreeting();
+            updateUI();
+        }
+    };
+
+    document.getElementById('form-register').onsubmit = (e) => {
+        e.preventDefault();
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        if (registerUser(name, email, password)) {
+            alert('Pendaftaran berhasil! Silakan masuk.');
+            switchAuthView('login');
+        }
+    };
+
+    function updateGreeting() {
+        const user = users.find(u => u.email === currentUser);
+        if (user) {
+            document.querySelector('#tab-dashboard h5').innerText = `Halo, ${user.name} 👋`;
+            document.getElementById('profile-name').innerText = user.name;
+            document.getElementById('profile-pic').src = user.profilePic || 'https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U';
+        }
+    }
+
+    // EDIT NAME FORM HANDLER
+    document.getElementById('form-edit-name').onsubmit = (e) => {
+        e.preventDefault();
+        const newName = document.getElementById('edit-name').value.trim();
+        if (!newName) {
+            alert('Nama tidak boleh kosong!');
+            return;
+        }
+        const userIndex = users.findIndex(u => u.email === currentUser);
+        if (userIndex !== -1) {
+            users[userIndex].name = newName;
+            localStorage.setItem('diitku_users', JSON.stringify(users));
+            updateGreeting();
+            bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
+            document.getElementById('form-edit-name').reset();
+            alert('Nama berhasil diubah!');
+        }
+    };
+
+    // NOTE FORM HANDLER
+    document.getElementById('form-note').onsubmit = (e) => {
+        e.preventDefault();
+        const title = document.getElementById('note-title').value.trim();
+        const content = document.getElementById('note-content').value.trim();
+        const editId = e.target.dataset.editId;
+
+        if (!title || !content) {
+            alert('Judul dan isi catatan tidak boleh kosong!');
+            return;
+        }
+
+        if (editId) {
+            // Edit existing note
+            const noteIndex = db.notes.findIndex(n => n.id == editId);
+            if (noteIndex !== -1) {
+                db.notes[noteIndex].title = title;
+                db.notes[noteIndex].content = content;
+                db.notes[noteIndex].date = new Date().toLocaleDateString();
+                alert('Catatan berhasil diubah!');
+            }
+            delete e.target.dataset.editId;
+        } else {
+            // Add new note
+            const note = {
+                id: Date.now(),
+                title: title,
+                content: content,
+                date: new Date().toLocaleDateString()
+            };
+            db.notes.push(note);
+            alert('Catatan berhasil ditambahkan!');
+        }
+
+        saveDB();
+        bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+        document.getElementById('form-note').reset();
+        renderNotes();
+    };
+
+    function saveDB() { localStorage.setItem('diitku_db', JSON.stringify(db)); }
+    function clearData() { if(confirm("Hapus semua data?")) { localStorage.clear(); location.reload(); } }
+
+    // SOUND FUNCTION
+    function playSound(type, amount, customText = null) {
+        if (type === 'coin') {
+            // Coin sound effect
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Coin-like sound: high frequency, short duration
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.2);
+
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            return;
+        }
+
+        if (type === 'warning') {
+            // Warning sound effect for low balance
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Low frequency warning beep
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(250, audioContext.currentTime + 0.2);
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.4);
+
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.6);
+            return;
+        }
+
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance();
+            utterance.lang = 'id-ID'; // Indonesian language
+            if (customText) {
+                utterance.text = customText;
+            } else {
+                utterance.text = type === 'income' ? 'Saldo berhasil ditambahkan' : 'Saldo berhasil dikeluarkan';
+            }
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            speechSynthesis.speak(utterance);
+        } else {
+            // Fallback to beep if speech not supported
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            const baseFreq = Math.min(800, 400 + (amount / 1000) * 100);
+            oscillator.frequency.setValueAtTime(type === 'income' ? baseFreq : baseFreq * 0.8, audioContext.currentTime);
+
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+    }
+
+    // EDIT PROFILE PICTURE FORM HANDLER
+    document.getElementById('profile-pic-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('preview-profile-pic').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('profile-pic-url').addEventListener('input', (e) => {
+        const url = e.target.value;
+        if (url) {
+            document.getElementById('preview-profile-pic').src = url;
+        }
+    });
+
+    document.getElementById('form-edit-profile-pic').onsubmit = (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('profile-pic-file');
+        const urlInput = document.getElementById('profile-pic-url');
+        let newPic = '';
+
+        if (fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                newPic = e.target.result;
+                updateProfilePic(newPic);
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        } else if (urlInput.value) {
+            newPic = urlInput.value;
+            updateProfilePic(newPic);
+        } else {
+            alert('Pilih gambar atau masukkan URL!');
+            return;
+        }
+    };
+
+    function updateProfilePic(picUrl) {
+        const userIndex = users.findIndex(u => u.email === currentUser);
+        if (userIndex !== -1) {
+            users[userIndex].profilePic = picUrl;
+            localStorage.setItem('diitku_users', JSON.stringify(users));
+            updateGreeting();
+            renderProfile(); // Update profile page immediately
+            bootstrap.Modal.getInstance(document.getElementById('editProfilePicModal')).hide();
+            document.getElementById('form-edit-profile-pic').reset();
+            alert('Foto profil berhasil diubah!');
+        }
+    }
+
+    // Initialize profile pic on modal open
+    document.getElementById('editProfilePicModal').addEventListener('show.bs.modal', () => {
+        const user = users.find(u => u.email === currentUser);
+        if (user) {
+            document.getElementById('preview-profile-pic').src = user.profilePic || 'https://via.placeholder.com/100x100/5D5FEF/FFFFFF?text=U';
+        }
+    });
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then((registration) => {
+                    console.log('Service Worker registered successfully:', registration);
+                })
+                .catch((error) => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        });
+    }
+
+    // Handle PWA shortcuts and share target
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const tab = urlParams.get('tab');
+
+    if (action === 'add') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                openModal('addModal');
+            }
+        };
+    } else if (tab === 'reports') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                switchTab('reports', document.querySelector('[onclick*="switchTab(\'reports\'"]'));
+            }
+        };
+    } else if (tab === 'goals') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                switchTab('goals', document.querySelector('[onclick*="switchTab(\'goals\'"]'));
+            }
+        };
+    }
+
+    // Handle share target
+    if (window.location.pathname === '/share') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                // Handle shared content
+                const sharedTitle = urlParams.get('title');
+                const sharedText = urlParams.get('text');
+                const sharedUrl = urlParams.get('url');
+                if (sharedTitle || sharedText || sharedUrl) {
+                    alert('Konten dibagikan: ' + (sharedTitle || sharedText || sharedUrl));
+                }
+            }
+        };
+    }
+
+    // Handle file handlers
+    if (window.location.pathname === '/handle-file') {
+        window.onload = () => {
+            if (!currentUser) {
+                openModal('authModal');
+            } else {
+                updateUI();
+                // Handle opened file
+                alert('File dibuka melalui PWA');
+            }
+        };
+    }
+
+    // Handle widget data
+    if (window.location.pathname === '/widget-data') {
+        // Return widget data as JSON
+        const widgetData = {
+            balance: parseInt(document.getElementById('display-balance')?.innerText.replace(/\D/g,'') || '0'),
+            income: parseInt(document.getElementById('display-income')?.innerText.replace(/\D/g,'') || '0'),
+            expense: parseInt(document.getElementById('display-expense')?.innerText.replace(/\D/g,'') || '0')
+        };
+        // Since this is client-side, we can't directly serve JSON, but this is for demonstration
+        console.log('Widget data:', widgetData);
+    }
+
+    // Push Notification Support
+    function requestNotificationPermission() {
+        if ('Notification' in window && 'serviceWorker' in navigator) {
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                    subscribeToPushNotifications();
+                } else {
+                    console.log('Notification permission denied.');
+                }
+            });
+        }
+    }
+
+    function subscribeToPushNotifications() {
+        navigator.serviceWorker.ready.then((registration) => {
+            // In a real app, you would get the server key from your push service
+            const vapidPublicKey = 'YOUR_VAPID_PUBLIC_KEY_HERE'; // Replace with actual key
+
+            registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            }).then((subscription) => {
+                console.log('Push subscription successful:', subscription);
+                // Send subscription to your server
+                sendSubscriptionToServer(subscription);
+            }).catch((error) => {
+                console.error('Push subscription failed:', error);
+            });
+        });
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    function sendSubscriptionToServer(subscription) {
+        // In a real app, send this to your server
+        console.log('Subscription to send to server:', subscription);
+    }
+
+    // Offline/Online Status Handling
+    function updateOnlineStatus() {
+        const status = navigator.onLine ? 'online' : 'offline';
+        console.log('Network status:', status);
+
+        if (!navigator.onLine) {
+            // Show offline message
+            showOfflineMessage();
+        } else {
+            // Hide offline message and sync data
+            hideOfflineMessage();
+            syncPendingData();
+        }
+    }
+
+    function showOfflineMessage() {
+        if (!document.getElementById('offline-message')) {
+            const message = document.createElement('div');
+            message.id = 'offline-message';
+            message.innerHTML = `
+                <div class="alert alert-warning alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                    <strong>Offline Mode</strong> Anda sedang offline. Beberapa fitur mungkin tidak tersedia.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.body.appendChild(message);
+        }
+    }
+
+    function hideOfflineMessage() {
+        const message = document.getElementById('offline-message');
+        if (message) {
+            message.remove();
+        }
+    }
+
+    function syncPendingData() {
+        // Register background sync
+        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.sync.register('background-sync-transactions')
+                    .then(() => {
+                        console.log('Background sync registered');
+                    })
+                    .catch((error) => {
+                        console.error('Background sync registration failed:', error);
+                    });
+            });
+        }
+    }
+
+    // Initialize push notifications and network status
+    window.addEventListener('load', () => {
+        requestNotificationPermission();
+        updateOnlineStatus();
+    });
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+</script>
+
+</body>
+</html>
