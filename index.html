@@ -117,13 +117,7 @@
         </div>
     </div>
 
-    <div id="tab-notes" class="page-content">
-        <div class="d-flex justify-content-between mb-4">
-            <h5 class="fw-bold">Catatan Saya</h5>
-            <button class="btn btn-sm btn-primary" onclick="openModal('addNoteModal')">+ Catatan</button>
-        </div>
-        <div id="notes-list"></div>
-    </div>
+
 
 </div>
 
@@ -450,33 +444,7 @@
     </div>
 </div>
 
-<!-- Add Note Modal -->
-<div class="modal fade" id="addNoteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0" style="border-radius:28px;">
-            <div class="modal-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0">Tambah Catatan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
 
-                <form id="form-note">
-                    <div class="mb-3">
-                        <label class="small fw-bold text-muted mb-2">JUDUL CATATAN</label>
-                        <input type="text" id="note-title" class="form-control p-3 bg-light border-0" placeholder="Judul catatan..." required style="border-radius:15px;">
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="small fw-bold text-muted mb-2">ISI CATATAN</label>
-                        <textarea id="note-content" class="form-control p-3 bg-light border-0" placeholder="Tulis catatan Anda di sini..." rows="5" required style="border-radius:15px;"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 p-3 fw-bold" style="border-radius:18px; background: var(--finku-blue);">Simpan Catatan</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 <nav class="bottom-nav">
     <a href="javascript:void(0)" class="nav-item active" onclick="switchTab('dashboard', this)"><i class="bi bi-house-door-fill"></i>Beranda</a>
@@ -489,7 +457,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // DATA STATE
-    let db = JSON.parse(localStorage.getItem('diitku_db')) || { transactions: [], goals: [], notes: [] };
+    let db = JSON.parse(localStorage.getItem('diitku_db')) || { transactions: [], goals: [] };
     let users = JSON.parse(localStorage.getItem('diitku_users')) || [];
     let currentUser = localStorage.getItem('current_user');
 
@@ -564,7 +532,6 @@
         el.classList.add('active');
         if(name === 'reports') renderReport();
         if(name === 'goals') renderGoals();
-        if(name === 'notes') renderNotes();
         if(name === 'profile') renderProfile();
     }
 
@@ -1023,45 +990,7 @@
         }
     };
 
-    // NOTE FORM HANDLER
-    document.getElementById('form-note').onsubmit = (e) => {
-        e.preventDefault();
-        const title = document.getElementById('note-title').value.trim();
-        const content = document.getElementById('note-content').value.trim();
-        const editId = e.target.dataset.editId;
 
-        if (!title || !content) {
-            alert('Judul dan isi catatan tidak boleh kosong!');
-            return;
-        }
-
-        if (editId) {
-            // Edit existing note
-            const noteIndex = db.notes.findIndex(n => n.id == editId);
-            if (noteIndex !== -1) {
-                db.notes[noteIndex].title = title;
-                db.notes[noteIndex].content = content;
-                db.notes[noteIndex].date = new Date().toLocaleDateString();
-                alert('Catatan berhasil diubah!');
-            }
-            delete e.target.dataset.editId;
-        } else {
-            // Add new note
-            const note = {
-                id: Date.now(),
-                title: title,
-                content: content,
-                date: new Date().toLocaleDateString()
-            };
-            db.notes.push(note);
-            alert('Catatan berhasil ditambahkan!');
-        }
-
-        saveDB();
-        bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
-        document.getElementById('form-note').reset();
-        renderNotes();
-    };
 
     function saveDB() { localStorage.setItem('diitku_db', JSON.stringify(db)); }
     function clearData() { if(confirm("Hapus semua data?")) { localStorage.clear(); location.reload(); } }
