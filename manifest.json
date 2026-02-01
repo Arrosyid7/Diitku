@@ -1,9 +1,9 @@
 {
   "name": "Diitku - FinTech Solution",
   "short_name": "Diitku",
-  "description": "Aplikasi manajemen keuangan pribadi",
+  "description": "Aplikasi manajemen keuangan digital",
   "start_url": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#F8F9FD",
   "theme_color": "#074aa9",
   "icons": [
@@ -114,5 +114,6 @@
     }
   ]
 }
+
 
 
